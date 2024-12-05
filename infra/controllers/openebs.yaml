@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: openebs
+  name: openebs-system
   labels:
     pod-security.kubernetes.io/audit: privileged
     pod-security.kubernetes.io/enforce: privileged
@@ -12,7 +12,7 @@ apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
   name: openebs
-  namespace: openebs
+  namespace: openebs-system
 spec:
   interval: 24h
   url: https://openebs.github.io/openebs
@@ -21,7 +21,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: openebs
-  namespace: openebs
+  namespace: openebs-system
 spec:
   interval: 30m
   chart:
@@ -31,11 +31,26 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: openebs
-        namespace: openebs
+        namespace: openebs-system
       interval: 12h
   values:
-    engines.local.lvm.enabled: false
-    engines.local.zfs.enabled: false
-    mayastor.csi.node.initContainers.enabled: false
-    mayastor.etcd.localpvScConfig.basePath: /var/local/openebs/localpv-hostpath/etcd
-    mayastor.loki-stack.localpvScConfig.basePath: /var/local/openebs/localpv-hostpath/loki
+    engines:
+      local:
+        lvm:
+          enabled: false
+        zfs:
+          enabled: false
+      replicated:
+        mayastor:
+          enabled: false
+    mayastor:
+      csi:
+        node:
+          initContainers:
+            enabled: false
+      etcd:
+        localpvScConfig:
+          basePath: /var/local/openebs/localpv-hostpath/etcd
+      loki-stack:
+        localpvScConfig:
+          basePath: /var/local/openebs/localpv-hostpath/loki
