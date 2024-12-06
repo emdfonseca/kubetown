@@ -34,6 +34,9 @@ spec:
         namespace: traefik-system
       interval: 12h
   values:
+    ingressRoute:
+      dashboard:
+        enabled: true
     service:
       externalIPs:
         # - 84.46.250.187
