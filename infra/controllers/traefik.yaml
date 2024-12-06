@@ -1,0 +1,50 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik-system
+  labels:
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: traefik
+  namespace: traefik-system
+spec:
+  interval: 24h
+  url: https://traefik.github.io/charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: traefik
+  namespace: traefik-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: traefik
+      version: v33.1.0
+      sourceRef:
+        kind: HelmRepository
+        name: traefik
+        namespace: traefik-system
+      interval: 12h
+  values:
+    service:
+      externalIPs:
+        # - 84.46.250.187
+        # - 89.147.103.128
+        # - 84.247.164.128
+        # - 2.58.80.57
+        # - 84.46.241.89
+        # - 109.123.242.41
+        # - 194.180.176.82
+        # - 2.58.80.58
+        # - 84.247.180.15
+        - 213.199.52.229
+        - 213.199.52.239
+        - 213.199.52.139
