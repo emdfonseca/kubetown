@@ -4,7 +4,8 @@
     "fluxcd@latest",
     "kubectl@latest",
     "terraform@latest",
-    "talosctl@latest"
+    "talosctl@latest",
+    "yq@latest"
   ],
   "shell": {
     "init_hook": [
