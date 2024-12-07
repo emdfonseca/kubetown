@@ -12,6 +12,11 @@ resource "talos_cluster_kubeconfig" "this" {
   node                 = [for k, v in data.terraform_remote_state.nodes.outputs.controlplanes : v.ip_v4][0]
 }
 
+locals {
+  controlplanes = [for k, v in data.terraform_remote_state.nodes.outputs.controlplanes : v.ip_v4]
+  workers       = [for k, v in data.terraform_remote_state.nodes.outputs.workers : v.ip_v4]
+}
+
 resource "talos_machine_configuration_apply" "controlplane" {
   for_each = { for index, node in data.terraform_remote_state.nodes.outputs.controlplanes : index => node }
 
@@ -19,10 +24,12 @@ resource "talos_machine_configuration_apply" "controlplane" {
   machine_configuration_input = data.talos_machine_configuration.controlplanes.machine_configuration
   node                        = each.value.ip_v4
   config_patches = [
-    templatefile("${path.module}/nodeconfig.yaml.tmpl", {
-      hostname        = each.value.display_name
-      enable_mayastor = false
-      controlplane    = true
+    templatefile("${path.module}/nodeconfig.yaml.tftpl", {
+      hostname          = each.value.display_name
+      enable_mayastor   = false
+      controlplane      = true
+      controlplane_list = local.controlplanes
+      worker_list       = local.workers
     }),
   ]
 }
@@ -34,10 +41,12 @@ resource "talos_machine_configuration_apply" "worker" {
   machine_configuration_input = data.talos_machine_configuration.workers.machine_configuration
   node                        = each.value.ip_v4
   config_patches = [
-    templatefile("${path.module}/nodeconfig.yaml.tmpl", {
-      hostname        = each.value.display_name,
-      enable_mayastor = each.value.product_id == "V46"
-      controlplane    = false
+    templatefile("${path.module}/nodeconfig.yaml.tftpl", {
+      hostname          = each.value.display_name
+      enable_mayastor   = each.value.product_id == "V46"
+      controlplane      = false
+      controlplane_list = local.controlplanes
+      worker_list       = local.workers
     }),
   ]
 }
