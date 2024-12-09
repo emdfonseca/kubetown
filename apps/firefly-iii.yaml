@@ -1,0 +1,131 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: firefly-iii
+  labels:
+    toolkit.fluxcd.io/tenant: dev-team
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: firefly-iii
+  namespace: firefly-iii
+spec:
+  interval: 5m
+  url: https://firefly-iii.github.io/kubernetes
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: firefly
+  namespace: firefly-iii
+spec:
+  releaseName: firefly
+  chart:
+    spec:
+      chart: firefly-iii
+      sourceRef:
+        kind: HelmRepository
+        name: firefly-iii
+  interval: 50m
+  timeout: 10m
+  install:
+    remediation:
+      retries: 3
+  values:
+    config:
+      env:
+        DB_HOST: "firefly-db"
+        DB_USERNAME: firefly
+        DB_CONNECTION: pgsql
+    secrets:
+      env:
+        DB_PASSWORD: "JXySMM0OhUCmTN60psrf8"
+    ingress:
+      enabled: true
+      className: traefik
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      hosts:
+      - firefly.codeplating.com
+      tls:
+        - secretName: firefly-iii-tls
+    service:
+      type: ClusterIP
+      port: 8080
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: firefly-db
+  namespace: firefly-iii
+spec:
+  releaseName: firefly-db
+  chart:
+    spec:
+      chart: firefly-db
+      sourceRef:
+        kind: HelmRepository
+        name: firefly-iii
+  interval: 50m
+  timeout: 10m
+  install:
+    remediation:
+      retries: 3
+  values:
+    storage:
+      accessModes: ReadWriteOnce
+      class: local-path
+    backup:
+      destination: pvc
+      pvc:
+        class: local-path
+        accessModes: ReadWriteOnce
+    configs:
+      DBUSER: firefly
+      PGPASSWORD: "JXySMM0OhUCmTN60psrf8"
+      POSTGRES_PASSWORD: "JXySMM0OhUCmTN60psrf8"
+      DBHOST: firefly-db
+      TZ: Europe/Lisbon
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: firefly-importer
+  namespace: firefly-iii
+spec:
+  releaseName: firefly-importer
+  chart:
+    spec:
+      chart: importer
+      sourceRef:
+        kind: HelmRepository
+        name: firefly-iii
+  interval: 50m
+  timeout: 10m
+  install:
+    remediation:
+      retries: 3
+  values:
+    fireflyiii:
+      url: "https://firefly.codeplating.com"
+      auth:
+        accessToken: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNTAwM2NhNmFlMDMxMGU2ZjcwNWU5YjJmNjJmOTQzMWNhNjRiZTZiZWUwYWI1NTkyYTQ5YjdjOTA1YWMzZmM1NDY5ODUzN2MyODRiYjgzZjMiLCJpYXQiOjE3MzQwMjYyMzEuMjQyNzMzLCJuYmYiOjE3MzQwMjYyMzEuMjQyNzM3LCJleHAiOjE3NjU1NjIyMzAuNjIzMDUzLCJzdWIiOiIxIiwic2NvcGVzIjpbXX0.WkW-d88t5rS-DUdpxvOzc5o793shkEjO-Wf18Nr_xJsZibosYN3i71GiweBxKerMxY6KW_349bHkHpYQSTzyksnMa1dEK6EnY4dX5E4FkVv-YKzReBBu-13F8VAanxCc_6Fee39mX2b9lEgqX6YpxKKr0YQVeX11fm8cR3HhvotPUYVzSmIgQe52-9QP2JgsyXfhk5j6w-A0OsvIyUg3uyII_1LY85oxBg11tUeApxRlSI047Rr8Bw62OV147jMqWk8-yBGDUsT8owRFivXoXPD1MAi7d-XENZz5qZUqrozgvgnXRUwt2B5P7tOF3JF_qEWEEU0FIiIBb7J4Ubf55gYewS55dsHadwafV93I487GFaCCB9i_JWWJfQ3gGSJ2akhTaVezbXtm_x_qVkflYdDBV9y4hDCzoWr9o13m7ajvLkLr6eCo3WF-ubq53hy6qHgPipgcoAKopn5sa_4Nvg3w73jHxnFGjXIxUv1gPKV4Fe8CmVQpQQ8GlPVlLvwKSVWkA3WHmaQ3yCU0uWFQFYcSoykxX7WvegV_Tow2l_uRJXScm25v1yqTS7Cgz4zyMidJAbGyBjHWBZmspnI-0eCXU96ZF6g2NWbFOGewozZn8pCdZcXfNtWQ-4EncBLBMv05AKR6Ml4s1MhOfFmMqdTSNN8QT4MCnnb--pMjeoE
+    config:
+      env:
+        IGNORE_DUPLICATE_ERRORS: "false"
+        TZ: "Europe/Lisbon"
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: firefly-iii-tls
+  namespace: firefly-iii
+spec:
+  secretName: firefly-iii-tls      # <===  Name of secret where the generated certificate will be stored.
+  dnsNames:
+    - "firefly.codeplating.com"
+  issuerRef:
+    name: letsencrypt-prd
+    kind: ClusterIssuer
+
