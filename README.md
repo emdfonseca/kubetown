@@ -21,3 +21,5 @@ $ terraform apply
 ```
 
 ## 3. Set up fluxcd
+
+## 4. Sign commits
